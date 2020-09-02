@@ -1,0 +1,46 @@
+##Tomcat的设置
+#server:
+#  tomcat:
+#    uri-encoding: UTF-8
+##配置数据源
+#spring:
+#  datasource:
+#    type: com.alibaba.druid.pool.DruidDataSource
+#    url: jdbc:mysql://localhost:3306/seckill?serverTimezone=UTC
+#    data-username: root
+#    data-password: W479127800@@@
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    initialization-mode: always
+#    initialSize: 5
+#    minIdle: 5
+#    maxActive: 20
+#    maxWait: 60000
+#    timeBetweenEvictionRunsMillis: 60000
+#    minEvictableIdleTimeMillis: 300000
+#    validationQuery: SELECT 1 FROM DUAL
+#    testWhileIdle: true
+#    testOnBorrow: false
+#    testOnReturn: false
+#    poolPreparedStatements: true
+#    #   配置监控统计拦截的filters，去掉后监控界面sql无法统计，'wall'用于防火墙
+#    filters: stat,wall
+#    maxPoolPreparedStatementPerConnectionSize: 20
+#    useGlobalDataSourceStat: true
+#    connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+## 禁用模板引擎的缓存
+#  thymeleaf:
+#    cache: false
+#
+##logging:
+##      level: debug
+#
+##要让MyBatis中知道有关mybatis的主配置文件和mapper文件的存在,必须进行配置(如果不采用注解的话)
+#mybatis:
+##  mapper-locations: classpath:mybatis/mapper/*.xml
+##  classpath: mybatis/mybatis-config.xml
+##  type-aliases-package:
+#  configuration:
+#    map-underscore-to-camel-case: true
+#
+##启动时打开自动配置报告
+#debug: false
