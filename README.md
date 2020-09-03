@@ -1,4 +1,4 @@
-# seckill
+# Seckill 高并发高性能秒杀系统
 SpringBoot-Seckill
 
 
