@@ -3,14 +3,17 @@ SpringBoot-Seckill
 
 
 1.用户登录
+
   用户输入的密码两次MD5计算后入库，
     第一次：表单密码=MD5(明文密码+salt)，固定盐值，前端js脚本计算。
     第二次：数据库密码=MD5(表单密码+salt)，随机盐值存在user数据库中，后端计算。
     
 2.JSR303参数校验
+
   自定义@IsMobile注解，IsMobileValidator校验是否为手机号码。
   
 3.GlobalExceptionHandler
+
    @ControllerAdvice 当将异常抛到controller时,可以对异常进行统一处理,规定返回的json格式 或 跳转到一个错误页面
    @ExceptionHandler(value = Exception.class) 这个注解用指定这个方法对何种异常处理（这里默认所有异常都用这个方法处理）
    全局异常处理器接管了所有的异常处理，无论何种异常全部抛给自定义的全局异常处理器去解决。
@@ -23,7 +26,8 @@ SpringBoot-Seckill
     在用户登录成功之后，后台生成一个类似JSEESSIONID的token来表示英语，通过response.addCookie通知客户端保存此cookie，浏览器的每次请求都在请求头中携带此token，然后后端根据token查询redis中是否有对应的user，由此实现了原生Session的功能。也减轻了数据库的压力。
     
 6.UserArgumentResolver (注册在WebMvcConfigurer)
-  当请求参数为SeckillUser时，使用这个解析器处理
+
+   当请求参数为SeckillUser时，使用这个解析器处理
      * 客户端的请求到达某个Controller的方法时，判断这个方法入参是否为SeckillUser，
      * 如果是，则这个SeckillUser参数对象通过下面的resolveArgument()方法获取。
      * 然后，该Controller方法继续往下执行时所看到的SeckillUser对象就是在这里的resolveArgument()方法处理过的对象。
@@ -31,6 +35,7 @@ SpringBoot-Seckill
      * 且每次调用userService.getSeckillUserByToken()封装user时都同时更新cookie以延长session的有效期，这与原生seesion的超时销毁机制相同。
      
 7.数据库设计
+
      * seckill_goods
      * seckill_order
      * seckill_user
@@ -38,12 +43,14 @@ SpringBoot-Seckill
      数据库连接池使用Druid，因为可以配置servlet实现sql监控。
      
 8.页面设计
+
      * goodsList.html
      * goodDetail.html
      * ordeDetail.html
      使用模板引擎Thymeleaf、Bootstrap、Jquery
      
 9.页面优化
+
      * 页面级缓存+URL缓存+对象缓存
      * 页面静态化、前后端分离
      * 静态资源优化
@@ -85,6 +92,7 @@ SpringBoot-Seckill
        其实现方式就是通过ajax异步请求服务器获取动态数据，对于非动态数据部分缓存在客户端，客户端通过获取服务端返回的json数据解析完成相应的逻辑。在本项目中，我们对商品详情页和订单详情页做了一个静态化处理。对于商品详情页，异步地从服务端获取商品详情信息，然后客户端完成页面渲染工作。除此之外，对于秒杀信息的获取也是通过异步获取完成的。例如，当秒杀开始时，用户执行秒杀动作，客户端就会轮询服务器获取秒杀结果。而不需要服务器直接返回页面。而对于订单详情页，实际上也是同样的思路。
 
 10.静态资源优化
+
      * S/CSS压缩，减少流量。客户端完成解压工作。
      * 多个JS/CSS组合，减少连接数。一次TCP连接完成多个HTTP交互。
      * CDN就近访问。
@@ -105,7 +113,6 @@ SpringBoot-Seckill
     6.返回前端：排队中。客户端轮询（轮询从Redis里查createOder里存进去的订单信息，同时兼顾Boolean isOver = getGoodsOver(goodsId)以判断是卖完了没订单，还是没卖完只是在排队，还是秒杀成功），及时返回信息，以增强用户体验。
     
 12.超卖问题，Redis和数据库数据一致性问问题
-
 
     1.MySQL商品库存减为负值。
     在SeckillService中：
@@ -171,6 +178,7 @@ SpringBoot-Seckill
       同时意识到，请求出队时才下单，先查询MySQL库存，再从redis里判断是否已经秒杀到（因为redis里的订单信息是在createOrder成功后才插入的，到这一步时已经无可能重复下单了，唯一索引已经解决），然后seckillService.seckill里减库存，下订单，订单记录插入redis和数据库。
 
 13.秒杀接口隐藏+数学公式验证码
+
     在秒杀开始之前，秒杀接口地址不要写到客户端，而是在秒杀开始之后，将秒杀地址动态地在客户端和服务器间进行交互完成拼接。这样一来，秒杀开始之前，秒杀地址对客户端不可见。
     实现思路：
       1.秒杀开始之前，先去请求接口获取秒杀地址；
@@ -181,7 +189,8 @@ SpringBoot-Seckill
     用户在提交获取秒杀地址的请求之前，将需要将goodsId和verifyCode一同提交到服务端，服务器getSeckillPath()通过@RequestParam参数校验验证码，通过则返回path盐值，然后前端持此"/seckill/" + path盐值 + "/doSeckill"拼接秒杀地址去异步地请求秒杀，服务器再验证path盐值是否正确，正确则就秒杀，此时客户端轮询等待结果返回。这样就完成了秒杀接口地址的隐藏。
     需要注意的是，这里需要将goodsId和verifyCode一同提交到服务端做校验，如果只提交goodsId，那么客户端仍然可以使用明文的方式获取随机生成的接口秒杀地址，但是，引入了verifyCode后，客户端需要将验证码也一起发送到服务端做验证，验证成功才返回随机生成的秒杀地址，不成功则返回非法请求，通过这样一种双重验证的方式，就可以方式用户使用不合理的手段参与秒杀，引入验证码有效地防止了这一点，因为验证码的输入需要用户真正参与进来。
     
-14.数学公式验证码，这种方式主要是防止客户端通过明文地址+goodsId将秒杀请求不停地发送到服务端，同时，也有效的防止机器人等手段参与秒杀。
+14.数学公式验证码
+
     验证码的作用：
       1.防止利用机器人等手段防止非目标用户参与秒杀；
       2.减少单位时间内的请求数量。对于一个秒杀商品，在开始秒杀后肯定会有许多用户参与秒杀，那么在开始秒杀的时候，用户请求数量是巨大，从而对服务器产         生较大的压力，而通过验证码的方式就可以有效地将集中式的请求分散，从而达到削减请求峰值的目的。
@@ -193,6 +202,7 @@ SpringBoot-Seckill
         4.ScriptEngine的使用（用于计算验证码上的表达式）。
         
  15.接口限流防刷
+ 
      使用拦截器实现，当然也可以用计时器或者Guava RateLimiter实现。
      自定义@AccessLimiter注解，设定：时间、次数、是否需要登录。
      在redis中存储一个用于记录访问次数的变量，在过期时间内被继续访问，则次数变量加1，如果在过期时间内访问次数超出限制，则返回“频繁提交提示用户”。过期时间到了之后，将该变量删除。
