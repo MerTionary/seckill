@@ -17,7 +17,8 @@ SpringBoot-Seckill
     @ControllerAdvice 当将异常抛到controller时,可以对异常进行统一处理,规定返回的json格式 或 跳转到一个错误页面
     @ExceptionHandler(value = Exception.class) 这个注解用指定这个方法对何种异常处理（这里默认所有异常都用这个方法处理）
     全局异常处理器接管了所有的异常处理，无论何种异常全部抛给自定义的全局异常处理器去解决。
-    用户登录, 要么处理成功返回true，否则会抛出全局异常，抛出的异常信息会被全局异常接收，全局异常会将异常信息传递到全局异常处理器，自定义的GlobalExceptionHandler默认会对所有的异常都进行处理。
+    用户登录, 要么处理成功返回true，否则会抛出全局异常，抛出的异常信息会被全局异常接收，
+    全局异常会将异常信息传递到全局异常处理器，自定义的GlobalExceptionHandler默认会对所有的异常都进行处理。
    
 4.Redis
     
@@ -76,8 +77,13 @@ SpringBoot-Seckill
      通过上面的叙述可知，URL缓存和页面缓存的不同之处在于，URL缓存需要根据URL中的参数动态地取缓存，而页面缓存则不需要。
      URL缓存和页面缓存的缓存时间都比较短，在本项目中，我们设置商品详情页和商品列表页的缓存时间为60s。
        
-     对象缓存是一种更细粒度的缓存，顾名思义就是对对象就行缓存，在本项目中，com.dapeng.seckill.service.SeckillUserService#getSeckillUserById和com.dapeng.seckill.service.SeckillUserService#getSeckillUserByToken的user对象都进行了缓存，但前者相当于数据库，用于登录时检验用户。而后者实际上是session。对于com.dapeng.seckill.service.SeckillUserService#updateSeckillUser方法中也缓存了对象，不过将更改的user先从redis中取出，然后删除对应的数据，然后在将新的数据更新到数据库中，再将数据缓存到redis中（getSeckillUserById）。
-     为什么要先删除缓存在写入缓存呢？因为如果不删除，以前的请求仍然可以访问通过原来的token访问到以前的数据，除了造成数据的不一致还会有安全问题，所以需要删除以前的缓存在写入新的缓存，因为我们把getSeckillUserById缓存的user当数据库user用，必须保持一致性。
+     对象缓存是一种更细粒度的缓存，顾名思义就是对对象就行缓存，在本项目中，com.dapeng.seckill.service.SeckillUserService#getSeckillUserById和
+     com.dapeng.seckill.service.SeckillUserService#getSeckillUserByToken的user对象都进行了缓存，但前者相当于数据库，用于登录时检验用户。
+     而后者实际上是session。对于com.dapeng.seckill.service.SeckillUserService#updateSeckillUser方法中也缓存了对象，不过将更改的user先从redis中取出，
+     然后删除对应的数据，然后在将新的数据更新到数据库中，再将数据缓存到redis中（getSeckillUserById）。
+     
+     为什么要先删除缓存在写入缓存呢？因为如果不删除，以前的请求仍然可以访问通过原来的token访问到以前的数据，除了造成数据的不一致还会有安全问题，
+     所以需要删除以前的缓存在写入新的缓存，因为我们把getSeckillUserById缓存的user当数据库user用，必须保持一致性。
         更新缓存(token和user都要更新，先删除再添加)
            // 删除对象缓存（查询对象时再添加，好比实际中修改密码后重新登陆）
         redisService.delete(SeckillUserKeyPrefix.seckillUserKeyPrefixById,""+id);
@@ -89,7 +95,8 @@ SpringBoot-Seckill
         更新的时候，先更新数据库，再删除缓存。
         读的时候，先读缓存；如果没有的话，就读数据库，同时将数据放入缓存，并返回响应。
         
-        如果先删除缓存，然后再更新数据库：试想，两个并发操作，一个是更新操作，另一个是查询操作，更新操作删除缓存后，查询操作没有命中缓存，先把老数据读出来后放到缓存中，然后更新操作更新了数据库。于是，在缓存中的数据还是老的数据，导致缓存中的数据是脏的，而且还一直这样脏下去了。
+        如果先删除缓存，然后再更新数据库：试想，两个并发操作，一个是更新操作，另一个是查询操作，更新操作删除缓存后，查询操作没有命中缓存，先把老数据读出来后放到缓存中，
+        然后更新操作更新了数据库。于是，在缓存中的数据还是老的数据，导致缓存中的数据是脏的，而且还一直这样脏下去了。
       
      * 页面静态化、前后端分离(GET请求是幂等的，)
        页面静态化指的是将页面直接缓存到客户端。常用的技术有Angular.js，Vue.js。
