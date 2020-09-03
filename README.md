@@ -4,30 +4,32 @@ SpringBoot-Seckill
 
 1.用户登录
 
-  用户输入的密码两次MD5计算后入库，
+    用户输入的密码两次MD5计算后入库，
     第一次：表单密码=MD5(明文密码+salt)，固定盐值，前端js脚本计算。
     第二次：数据库密码=MD5(表单密码+salt)，随机盐值存在user数据库中，后端计算。
     
 2.JSR303参数校验
 
-  自定义@IsMobile注解，IsMobileValidator校验是否为手机号码。
+    自定义@IsMobile注解，IsMobileValidator校验是否为手机号码。
   
 3.GlobalExceptionHandler
-
-   @ControllerAdvice 当将异常抛到controller时,可以对异常进行统一处理,规定返回的json格式 或 跳转到一个错误页面
-   @ExceptionHandler(value = Exception.class) 这个注解用指定这个方法对何种异常处理（这里默认所有异常都用这个方法处理）
-   全局异常处理器接管了所有的异常处理，无论何种异常全部抛给自定义的全局异常处理器去解决。
-   用户登录, 要么处理成功返回true，否则会抛出全局异常，抛出的异常信息会被全局异常接收，全局异常会将异常信息传递到全局异常处理器，自定义的GlobalExceptionHandler默认会对所有的异常都进行处理。
+    
+    @ControllerAdvice 当将异常抛到controller时,可以对异常进行统一处理,规定返回的json格式 或 跳转到一个错误页面
+    @ExceptionHandler(value = Exception.class) 这个注解用指定这个方法对何种异常处理（这里默认所有异常都用这个方法处理）
+    全局异常处理器接管了所有的异常处理，无论何种异常全部抛给自定义的全局异常处理器去解决。
+    用户登录, 要么处理成功返回true，否则会抛出全局异常，抛出的异常信息会被全局异常接收，全局异常会将异常信息传递到全局异常处理器，自定义的GlobalExceptionHandler默认会对所有的异常都进行处理。
    
 4.Redis
+    
     FastJson将对象序列化成json字符串，自己封装jedis一个redisService，同时根据不同的数据加一个不同的prefix，以实现key的差异化。实现了redis数据的存入、取出、过期时间的设置，不使用SpringBoot提供的RedisTemplate。
     
 5.分布式session
+    
     在用户登录成功之后，后台生成一个类似JSEESSIONID的token来表示英语，通过response.addCookie通知客户端保存此cookie，浏览器的每次请求都在请求头中携带此token，然后后端根据token查询redis中是否有对应的user，由此实现了原生Session的功能。也减轻了数据库的压力。
     
 6.UserArgumentResolver (注册在WebMvcConfigurer)
 
-   当请求参数为SeckillUser时，使用这个解析器处理
+     当请求参数为SeckillUser时，使用这个解析器处理
      * 客户端的请求到达某个Controller的方法时，判断这个方法入参是否为SeckillUser，
      * 如果是，则这个SeckillUser参数对象通过下面的resolveArgument()方法获取。
      * 然后，该Controller方法继续往下执行时所看到的SeckillUser对象就是在这里的resolveArgument()方法处理过的对象。
@@ -206,9 +208,16 @@ SpringBoot-Seckill
      使用拦截器实现，当然也可以用计时器或者Guava RateLimiter实现。
      自定义@AccessLimiter注解，设定：时间、次数、是否需要登录。
      在redis中存储一个用于记录访问次数的变量，在过期时间内被继续访问，则次数变量加1，如果在过期时间内访问次数超出限制，则返回“频繁提交提示用户”。过期时间到了之后，将该变量删除。
-     在preHandle里拦截标注了@AccessLimit注解的方法，取出注解参数，key为请求URI+userId，然后从redis里get请求次数，若无数据则set。否则对比次数并incr redis数据，并返回前端提示信息。
+     在AccessLimitHandlerInterceptor里拦截标注了@AccessLimit注解的方法，取出注解参数，key为请求URI+userId，然后从redis里get请求次数，若无数据则set。否则对比次数并incr redis数据，并返回前端提示信息。
      
      因为可能需要对很对接口对限流防刷操作，如果对每一个接口都实现一遍限流防刷，则会导致代码过度冗余，因此，可以定义一个方法拦截器@AccessInterceptor拦截用户对接口的请求，统一对拦截限流逻辑处理，这样可以有效地减少代码的冗余。针对需要拦截请求的接口，添加注解@AccessLimit即可。
+     
+    //在在AccessLimitHandlerInterceptor里@Autowired userService为空，造成null的原因是因为拦截器加载是在SpringContext创建之前完成的，所以在拦截器中注入实体自然就为null。
+    解决方式：在注册Interceptor的配置类里就@Bean添加拦截器到IoC容器，不要在addArgumentResolvers里new拦截器，直接注入就好。
+    @Bean
+    public AccessLimitHandlerInterceptor getInterceptor(){
+        return new AccessLimitHandlerInterceptor();
+    }
      
       
     
