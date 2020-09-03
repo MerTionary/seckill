@@ -73,7 +73,8 @@ SpringBoot-Seckill
        若html为空，查询秒杀商品列表，用于手动渲染时将商品数据填充到页面
        手动渲染页面 html = thymeleafViewResolver.getTemplateEngine().process("goodsList", webContext)，并返回html。
        
-     所谓URL缓存，实际上和页面缓存是一样的，在本项目中，我们对商品详情页做了缓存，商品详情页的请求需要goodsId，也就是说，对每一个goodsId对应的goodsList都做了一个缓存，其他的和商品列表页的缓存思路是一致的，只不过商品取详情页是需要动态的根据goodsId来取。
+     所谓URL缓存，实际上和页面缓存是一样的，在本项目中，我们对商品详情页做了缓存，商品详情页的请求需要goodsId，也就是说，对每一个goodsId对应的goodsList都做了一个缓存，
+     其他的和商品列表页的缓存思路是一致的，只不过商品取详情页是需要动态的根据goodsId来取。
      
      通过上面的叙述可知，URL缓存和页面缓存的不同之处在于，URL缓存需要根据URL中的参数动态地取缓存，而页面缓存则不需要。
      URL缓存和页面缓存的缓存时间都比较短，在本项目中，我们设置商品详情页和商品列表页的缓存时间为60s。
@@ -125,8 +126,10 @@ SpringBoot-Seckill
           这里有个问题，在redis预减库存，入队，但实际队列中的秒杀可能失败，mysql还有库存时，而redis已经没有了，出现错误！
           比如队列里10个请求，两个是同一人的，肯定有一个请求失败，但此时redis中已经减去了这个，mysql并没有减去！
           所以，若已秒杀到，同过redisService.incr()回滚redis库存数据并更新内存标记。
-    5.请求异步下单，将SeckillMessage信息（userId和goodsId）压入RabbitMQ，同时在MQListner监听队列，请求出队，取出message，再判断库存和是否已经秒杀到；如果通过，再OrderInfo = seckillService.seckill()，减库存(Boolean success = goodsService.reduceStock(goodsVo))和下订单(orderService.createOrder(user,goodsVo))。
-    6.返回前端：排队中。客户端轮询（轮询从Redis里查createOder里存进去的订单信息，同时兼顾Boolean isOver = getGoodsOver(goodsId)以判断是卖完了没订单，还是没卖完只是在排队，还是秒杀成功），及时返回信息，以增强用户体验。
+    5.请求异步下单，将SeckillMessage信息（userId和goodsId）压入RabbitMQ，同时在MQListner监听队列，请求出队，取出message，再判断库存和是否已经秒杀到；如果通过，再
+    OrderInfo = seckillService.seckill()，减库存(Boolean success = goodsService.reduceStock(goodsVo))和下订单(orderService.createOrder(user,goodsVo))。
+    6.返回前端：排队中。客户端轮询（轮询从Redis里查createOder里存进去的订单信息，同时兼顾Boolean isOver = getGoodsOver(goodsId)以判断是卖完了没订单，还是没卖完只是在排
+    队，还是秒杀成功），及时返回信息，以增强用户体验。
     
 12.超卖问题，Redis和数据库数据一致性问问题
 
@@ -189,9 +192,15 @@ SpringBoot-Seckill
     Integer reduceStock(SeckillGoods seckillGoods);
     
     2.同一个用户秒杀到了两个相同的产品。
-      如果一个未秒杀成功的用户同时对一个商品发出两次秒杀请求，对于两次秒杀请求，服务器层面会判断用户的两次秒杀请求为合法请求，然后完成从数据库减库存和将订单插入到数据库的操作，显然，这是不合理的。因为一个用户只能秒杀一个商品，如果执行成功，则订单表中会出现两条条商品id和用户id相同的记录，一个商品的库存被同一个用户减了两次（也可能是多次），这就引发了超卖问题。
-      因此，为了解决这个问题，我们要充分利用事务的特性。 从数据库减库存和将订单记录插入到数据库(和redis，在OrderService里orderDao.insertSeckillOrder(seckillOrder)实现)构成了事务，如果一个操作未执行成功，则事务会回滚。如果我们对seckill_order中的user_id和goods_id字段创建一个联合唯一索引，则在插入两条user_id和goods_id相同的记录时，将会操作失败，从而事务回滚，秒杀不成功，这就解决了同一个用户发起对一个商品同时发起多次请求引发的超卖问题。
-      同时意识到，请求出队时才下单，先查询MySQL库存，再从redis里判断是否已经秒杀到（因为redis里的订单信息是在createOrder成功后才插入的，到这一步时已经无可能重复下单了，唯一索引已经解决），然后seckillService.seckill里减库存，下订单，订单记录插入redis和数据库。
+      如果一个未秒杀成功的用户同时对一个商品发出两次秒杀请求，对于两次秒杀请求，服务器层面会判断用户的两次秒杀请求为合法请求，然后完成从数据库减库存和将订单插入到数据库的操
+      作，显然，这是不合理的。因为一个用户只能秒杀一个商品，如果执行成功，则订单表中会出现两条条商品id和用户id相同的记录，一个商品的库存被同一个用户减了两次（也可能是多
+      次），这就引发了超卖问题。
+      
+      因此，为了解决这个问题，我们要充分利用事务的特性。 从数据库减库存和将订单记录插入到数据库(和redis，在OrderService里orderDao.insertSeckillOrder(seckillOrder)实现)
+      构成了事务，如果一个操作未执行成功，则事务会回滚。如果我们对seckill_order中的user_id和goods_id字段创建一个联合唯一索引，则在插入两条user_id和goods_id相同的记录时，
+      将会操作失败，从而事务回滚，秒杀不成功，这就解决了同一个用户发起对一个商品同时发起多次请求引发的超卖问题。
+      同时意识到，请求出队时才下单，先查询MySQL库存，再从redis里判断是否已经秒杀到（因为redis里的订单信息是在createOrder成功后才插入的，到这一步时已经无可能重复下单了，唯
+      一索引已经解决），然后seckillService.seckill里减库存，下订单，订单记录插入redis和数据库。
 
 13.秒杀接口隐藏+数学公式验证码
 
