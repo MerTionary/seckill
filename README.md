@@ -93,6 +93,7 @@ SpringBoot-Seckill
      
      
 11.秒杀接口的实现及其优化
+
     1.系统加载时执行afterPropertiesSet()，从数据库查出商品库存并存入redis，同时利用HashMap内存标记库存不为空。
     2.在SeckillController.doSeckill()方法中，首先查看内存标记，减少对redis的访问，若无库存直接结束，若秒杀未结束才继续访问redis
     3.利用decrStock = redisService.decr()预减库存，并根据利用decrStock更新内存标记。
@@ -104,8 +105,9 @@ SpringBoot-Seckill
     6.返回前端：排队中。客户端轮询（轮询从Redis里查createOder里存进去的订单信息，同时兼顾Boolean isOver = getGoodsOver(goodsId)以判断是卖完了没订单，还是没卖完只是在排队，还是秒杀成功），及时返回信息，以增强用户体验。
     
 12.超卖问题，Redis和数据库数据一致性问问题
+
+
     1.MySQL商品库存减为负值。
-    
     在SeckillService中：
       // 减库存-下订单-写入秒杀订单(原子操作，事务)
       @Transactional(propagation = Propagation.REQUIRED, readOnly = false)
