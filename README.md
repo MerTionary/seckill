@@ -131,6 +131,13 @@ SpringBoot-Seckill
     6.返回前端：排队中。客户端轮询（轮询从Redis里查createOder里存进去的订单信息，同时兼顾Boolean isOver = getGoodsOver(goodsId)以判断是卖完了没订单，还是没卖完只是在排
     队，还是秒杀成功），及时返回信息，以增强用户体验。
     
+    
+12.为什么用消息队列？为什么用RabbitMQ这种消息队列
+
+    1.削峰 解耦 异步
+
+    2.RabbitMQ时延低 微秒级；但吞吐量比RocketMQ低了一个数量级；主从结构高可用性，基于Erlang开发。
+
 12.超卖问题，Redis和数据库数据一致性问问题
 
     1.MySQL商品库存减为负值。
