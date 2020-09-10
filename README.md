@@ -27,7 +27,7 @@ SpringBoot-Seckill
     
 5.分布式session
     
-    在用户登录成功之后，后台生成一个类似JSEESSIONID的token来表示英语，通过response.addCookie通知客户端保存此cookie，
+    在用户登录成功之后，后台生成一个类似JSEESSIONID的token来表示用户，通过response.addCookie通知客户端保存此cookie，
     浏览器的每次请求都在请求头中携带此token，然后后端根据token查询redis中是否有对应的user，由此实现了原生Session的功能。也减轻了数据库的压力。
     
 6.UserArgumentResolver (注册在WebMvcConfigurer)
@@ -109,7 +109,7 @@ SpringBoot-Seckill
 
 10.静态资源优化
 
-     * S/CSS压缩，减少流量。客户端完成解压工作。
+     * JS/CSS压缩，减少流量。客户端完成解压工作。
      * 多个JS/CSS组合，减少连接数。一次TCP连接完成多个HTTP交互。
      * CDN就近访问。
      
